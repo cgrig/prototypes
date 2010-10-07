@@ -56,11 +56,11 @@ class Bindings:
   def __init__(self):
     self.map = dict()
 
-  def apply(self, (tag, arguments)):
-    if arguments == [] and tag in self.map:
+  def apply(self, expression):
+    if expression.arguments == [] and expression.tag in self.map:
       return self.map[tag]
     else:
-      return (tag, [self.apply(x) for x in arguments])
+      return mk_term(tag, [self.apply(x) for x in arguments])
 
   def update(self, variable, expression):
     self.map[variable] = expression
@@ -81,7 +81,7 @@ class Rule:
         for action in self.actions:
           action.execute(bindings, state)
       except s:
-        print ('Failed to execute rule: ' + s)
+        print(('Failed to execute rule: ' + s))
 
 class Role:
   def __init__(self, initializers, rules):
@@ -113,7 +113,7 @@ class Initializer:
 
 class Action:
   def execute(self, bindings, state):
-    print 'TODO: Implement execute in ', type(self).__name__
+    print('TODO: Implement execute in ', type(self).__name__)
 
 class RememberOrForgetAction(Action):
   def __init__(self, type, formula):
