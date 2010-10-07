@@ -25,7 +25,7 @@ role Player
     forget(Boss(x))
     remember(Boss(newBoss))
 
-init
+main
   b = new [Ball()]
   g = new [Captain(b, "rem")]
   c = new [Player(b, g, "clau")]
