@@ -34,18 +34,20 @@ def parse_script(path):
   script_lines = script.readlines()
   script.close()
   parsed_lines = 0
-  sap.roles = dict()
   while parse_role(): pass
   parse_main()
 
-def interpret(path):
-  parse_script(path)
-  execute()
-
+def initialize():
+  sap.roles = dict()
 
 def main(argv):
-  interpret(argv[1])
-  # TODO: arg check, usage msg
+  if '-help' in argv[1:]:
+    print('Usage: {0} <agent files>'.format(argv[0]), file=sys.stderr)
+    exit(1)
+  initialize()
+  for s in argv[1:]:
+    parse_script(s)
+  execute()
 
 if __name__ == '__main__':
   main(sys.argv)
