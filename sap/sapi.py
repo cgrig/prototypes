@@ -2,6 +2,7 @@
 
 # SAP Interpreter. SAP is a SAP Agent Platform.
 
+import re
 import sap
 import sys
 
@@ -14,32 +15,91 @@ def execute():
     action.execute(sap.Bindings(), set())    
 
 script_lines = []
+current_script = ''
 parsed_lines = 0
 current_role_name = ''
 current_role_inits = []
 current_role_rules = []
+errors = []
+warnings = []
+offsets = [0]
+
+def report(where, what):
+  where.append('{0}:{1}: {2}'
+      .format(current_script, parsed_lines + 1, what))
+
+def error(message):
+  report(errors, message)
+
+def warning(message):
+  report(warnings, message)
+
+# ignores white lines
+# throws IndexError iff there's no next line
+# processes indent
+# trims trailing space, but warns
+def get_next_line():
+  global offsets
+  global parsed_lines
+  l = script_lines[parsed_lines][:-1]
+  if l.find('\t') != -1:
+    error('I refuse to deal with tabs')
+  if l == '':
+    parsed_lines += 1
+    return get_next_line()
+  if l[-1] == ' ':
+    warning('trailing whitespace ignored')
+    l = l.rstrip()
+  m = re.match(r'( *)(.*)', l)
+  offset = len(m.group(1))
+  if offset not in offsets and offset < offsets[-1]:
+    error('bad indentation')
+  offsets = [x for x in offsets if x < offset]
+  indent = len(offsets)
+  offsets.append(offset)
+  return indent, m.group(2)
 
 def parse_role():
+  global current_role_inits
+  global current_role_rules
+  global parsed_lines
+  # print('script_lines', script_lines) #DBG
   try:
-    l = script_lines[parsed_lines].strip()
-    if not l.startswith('role '):
-      return False
-    role_name = l[5:].strip()[:-1]
-    s
+    i, l = get_next_line()
+    m = re.match(r'role +([a-zA-Z]+):', l)
+    if not m: return False
+    parsed_lines += 1
+    if i != 0: error("indented 'role'")
+    role_name = m.group(1)
+    sap.roles[role_name] = 0
     # TODO: continue
   except IndexError:
     return False
 
 def parse_main():
-  pass
+  global parsed_lines
+  i, l = get_next_line()
+  if l != 'main': return False
+  parsed_lines += 1
+  # TODO: continue
+  return True
 
 def parse_script(path):
+  global current_script
+  global parsed_lines
+  global script_lines
+  current_script = path
   script = open(path, 'r')
   script_lines = script.readlines()
   script.close()
+  #print('parse {0} -> {1}'.format(path, script_lines)) #DBG
   parsed_lines = 0
   while parse_role(): pass
   parse_main()
+  #print('parsed_lines',parsed_lines) #DBG
+  assert (parsed_lines <= len(script_lines))
+  if parsed_lines < len(script_lines):
+    error('syntax error')
 
 def initialize():
   sap.roles = dict()
@@ -54,6 +114,7 @@ def parse_args(command):
 
 def main(argv):
   options, files = parse_args(argv)
+  files = files[1:]
   initialize()
   for s in files:
     parse_script(s)
@@ -63,4 +124,10 @@ def main(argv):
     execute()
 
 if __name__ == '__main__':
-  main(sys.argv)
+  try:
+    main(sys.argv)
+  finally:
+    for e in errors:
+      print('{0} (E)'.format(e))
+    for w in warnings:
+      print('{0} (W)'.format(w))
