@@ -2,6 +2,7 @@
 
 from multiprocessing import Process, Queue
 
+# agent program representation and interpreter {{{1
 roles = dict()
 
 class ActionError(Exception):
@@ -182,4 +183,15 @@ class Agent(Process):
       message = self._get_message()
       for r in self._active_roles:
         roles[r].execute(message, self._mental_state)
+
+# for debugging {{{1
+
+def dump():
+  for role_name, role in roles.items():
+    print('role {0}:'.format(role_name))
+    for initializer in role.initializers:
+      pass
+    for rule in role.rules:
+      pass
+    print()
 

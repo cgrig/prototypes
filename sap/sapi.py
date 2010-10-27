@@ -5,6 +5,8 @@
 import sap
 import sys
 
+from optparse import OptionParser
+
 sap_main=[]
 
 def execute():
@@ -22,6 +24,8 @@ def parse_role():
     l = script_lines[parsed_lines].strip()
     if not l.startswith('role '):
       return False
+    role_name = l[5:].strip()[:-1]
+    s
     # TODO: continue
   except IndexError:
     return False
@@ -40,14 +44,23 @@ def parse_script(path):
 def initialize():
   sap.roles = dict()
 
+def parse_args(command):
+  parser = OptionParser()
+  parser.add_option('-p', '--print', action='store_true', 
+      help='print the agent program (debug)')
+  parser.add_option('-d', '--dry', action='store_false', dest='exec',
+      default=True, help='do not execute, just parse')
+  return parser.parse_args(command)
+
 def main(argv):
-  if '-help' in argv[1:]:
-    print('Usage: {0} <agent files>'.format(argv[0]), file=sys.stderr)
-    exit(1)
+  options, files = parse_args(argv)
   initialize()
-  for s in argv[1:]:
+  for s in files:
     parse_script(s)
-  execute()
+  if options.print:
+    sap.dump()
+  if options.exec:
+    execute()
 
 if __name__ == '__main__':
   main(sys.argv)
