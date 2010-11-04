@@ -3,16 +3,16 @@
 # SAP Interpreter. SAP is a SAP Agent Platform.
 
 import re
-import sap
 import sys
 
+from sap import ds
 from optparse import OptionParser
 
 sap_main=[]
 
 def execute():
   for action in sap_main:
-    action.execute(sap.Bindings(), set())    
+    action.execute(ds.Bindings(), set())    
 
 script_lines = []
 current_script = ''
@@ -93,7 +93,7 @@ def parse_role():
   role_name = m.group(1)
   current_role_inits, current_role_rules = [], []
   while parse_role_member(): pass
-  sap.roles[role_name] = sap.Role(current_role_inits, current_role_rules)
+  ds.roles[role_name] = ds.Role(current_role_inits, current_role_rules)
   return True
 
 def parse_main():
@@ -123,7 +123,7 @@ def parse_script(path):
     error('syntax error')
 
 def initialize():
-  sap.roles = dict()
+  ds.roles = dict()
 
 def parse_args(command):
   parser = OptionParser()
@@ -140,7 +140,7 @@ def main(argv):
   for s in files:
     parse_script(s)
   if options.print:
-    sap.dump()
+    ds.dump()
   if options.exec:
     execute()
 

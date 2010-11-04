@@ -1,8 +1,14 @@
 # phases:
 #  - strip comments
-#  - introduce { } according to indents
+#  - glue continuation lines and introduce { } according to indents
 #  - tokenize (identifiers, etc.) and strip whitespace
-
+#
+# token values
+#  - None (doesn't match)
+#  - (some value, location)
+#
+# location operations
+#  - compose
 
 t1 n =
     (re ()) 
