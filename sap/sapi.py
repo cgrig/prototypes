@@ -20,6 +20,7 @@ parsed_lines = 0
 current_role_name = ''
 current_role_inits = []
 current_role_rules = []
+current_actions = []
 errors = []
 warnings = []
 offsets = [0]
@@ -38,6 +39,7 @@ def warning(message):
 # throws IndexError iff there's no next line
 # processes indent
 # trims trailing space, but warns
+# TODO: strip comments
 def get_next_line():
   global offsets
   global parsed_lines
@@ -59,26 +61,45 @@ def get_next_line():
   offsets.append(offset)
   return indent, m.group(2)
 
+def parse_role_member():
+  global parsed_lines
+  global current_actions
+  try: i, l = get_next_line()
+  except IndexError: return False
+  m = re.match(r'([a-z]+)', l)
+  t = m.group(1)
+  te = (", found '" + t + "'") if m else ""
+  if not m or t not in ['init','rule']: error("expected 'init' or 'rule'" + te)
+  parsed_lines += 1
+  current_actions = []
+  if t == 'init':
+    # TODO
+    pass
+  else:
+    # TODO
+    pass
+  return True
+
 def parse_role():
   global current_role_inits
   global current_role_rules
   global parsed_lines
-  # print('script_lines', script_lines) #DBG
-  try:
-    i, l = get_next_line()
-    m = re.match(r'role +([a-zA-Z]+):', l)
-    if not m: return False
-    parsed_lines += 1
-    if i != 0: error("indented 'role'")
-    role_name = m.group(1)
-    sap.roles[role_name] = 0
-    # TODO: continue
-  except IndexError:
-    return False
+  try: i, l = get_next_line()
+  except IndexError: return False
+  m = re.match(r'role +([a-zA-Z]+):$', l)
+  if not m: return False
+  parsed_lines += 1
+  if i != 0: error("indented 'role'")
+  role_name = m.group(1)
+  current_role_inits, current_role_rules = [], []
+  while parse_role_member(): pass
+  sap.roles[role_name] = sap.Role(current_role_inits, current_role_rules)
+  return True
 
 def parse_main():
   global parsed_lines
-  i, l = get_next_line()
+  try: i, l = get_next_line() 
+  except IndexError: return False
   if l != 'main': return False
   parsed_lines += 1
   # TODO: continue

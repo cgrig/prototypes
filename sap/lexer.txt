@@ -1,0 +1,16 @@
+# phases:
+#  - strip comments
+#  - introduce { } according to indents
+#  - tokenize (identifiers, etc.) and strip whitespace
+
+
+t1 n =
+    (re ()) 
+  parse:
+    re('\n') list(' ', n) -> '{'
+
+def list(t, n, s):
+  if n <= 0:
+    0
+  else:
+    parse([([lambda:is(t, s),lambda:list(t, n-1, s)],(lambda _,x:y))], s)
