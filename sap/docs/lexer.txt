@@ -9,6 +9,98 @@
 #
 # location operations
 #  - compose
+#
+# Below is a description of the parser. The goals of the notation are (1) to
+# be succinct and (2) to be easily expanded into a valid python program.
+# The notation describes a recursive descent parser, NOT a grammar.
+# The easiest way to explain the notation is to give the translation into
+# Python. I assume you read sap.utils.PeekableGenerator.
+#
+#   translate(rule f(x, y): C) = def f(x, y, pg): translate(C)
+# 
+# C is some Python code, enriched with the special 'parse' construct.
+#
+#   parse:
+#     L11 L12 ... -> R1
+#     L21 L22 ... -> R2
+#     ...
+#     Ln1 Ln2 ... -> Rn
+#
+# This gets translated into
+#
+#   pg.mark()
+#   v1 = L11'
+#   if v1 is not None:
+#     v2 = L12
+#     if v2 is not None:
+#       ...
+#         pg.unmark()
+#         return R1
+#   pg.rewind()
+#   ...
+#   return None
+#
+# The recursive descend is done by Lmn-s, which are function calls.
+# The prime version is obtained by appending the argument pg.
+
+def is(x, pg):
+  if pg.next() is x:
+    return x
+  else:
+    None
+
+def any(pg):
+  return pg.next()
+
+def gen(f):
+  while True:
+    v = f()
+    if c is None: return
+    yield v
+
+parser CommentHider:
+  def hide(self):
+    parse:
+      is('\n') -> '\n'
+      any() -> self.hide()
+
+  def next(self):
+    parse:
+      is('#') -> self.hide()
+      any() -> v1
+
+parser IndentProcessor:
+  def next(self):
+    parse:
+      is('\n') -> self.process_indent()
+      any() -> v1
+
+  def process_indent(self):
+    space_count = 0
+    while True:
+      c = self.pg.next()
+      if c is not ' ':
+        self.pg.rewind(1)
+        break
+      space_count += 1
+    p = bisect.bisect(self.indents, space_count)
+    if p == len(self.indents):
+      self.indents.append(space_count)
+      return '{'
+    elif self.indents[p] == space_count:
+      return self.next()
+    else:
+      # TODO: error
+
+
+rule introduce_brackets(indents):
+  parse:
+    is('\n') -> 
+
+parser Tokenizer:
+
+parser TreeBuilder:
+
 
 t1 n =
     (re ()) 
