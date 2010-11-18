@@ -14,7 +14,7 @@
 # be succinct and (2) to be easily expanded into a valid python program.
 # The notation describes a recursive descent parser, NOT a grammar.
 # The easiest way to explain the notation is to give the translation into
-# Python. I assume you read sap.utils.PeekableGenerator.
+# Python. I assume you have read sap.utils.PeekableGenerator.
 #
 #   translate(rule f(x, y): C) = def f(x, y, pg): translate(C)
 # 
@@ -31,7 +31,7 @@
 #   pg.mark()
 #   v1 = L11'
 #   if v1 is not None:
-#     v2 = L12
+#     v2 = L12'
 #     if v2 is not None:
 #       ...
 #         pg.unmark()
@@ -62,7 +62,7 @@ parser CommentHider:
   def hide(self):
     parse:
       is('\n') -> '\n'
-      any() -> self.hide()
+      any() -> self.hide(pg)
 
   def next(self):
     parse:

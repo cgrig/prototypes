@@ -1,28 +1,38 @@
-class PeekableGenerator:
-  """Wraps a generator, such that you can rewind after peeking.
+class Generator:
+  """Wraps a generator, such that you can rewind.
+
+  Generator(x) behaves just like x if only the method next is used.  The space
+  and time overhead is constant for each call to next.
+
+  In general, the memory use is proportional to the number of calls to next
+  that follow a call to mark and are before a matching unmark/rewind.
   """
   def __init__(self, generator):
-    self.generator = generator()
+    self.generator = generator
     self.buffer = []
     self.position = 0
+    self.marks = []
 
-  def peek(self):
-    if self.position == len(self.buffer):
-      self.buffer.append(next(self.generator))
-    self.position += 1
-    return self.buffer[self.position-1]
+  def mark():
+    self.marks.append(self.position)
+
+  def unmark():
+    marks.pop()
+    if marks == []:
+      self.buffer = []
+      self.position = 0
+
+  def rewind():
+    self.position = marks.pop()
 
   def next(self):
-    r = self.peek()
-    self.eat()
+    if marks == []:
+      return self.generator.next()
+    if self.position == len(self.buffer):
+      self.buffer.append(self.generator.next())
+    r = self.buffer[self.position]
+    self.position += 1
     return r
-
-  def rewind(self):
-    self.position = 0
-
-  def eat(self):
-    self.buffer = self.buffer[self.position:]
-    self.position = 0
 
 if __name__ == '__main__':
   def f():

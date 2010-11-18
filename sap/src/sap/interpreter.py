@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-# SAP Interpreter. SAP is a SAP Agent Platform.
-
 import re
 import sys
 
@@ -73,7 +71,6 @@ def parse_role_member():
   parsed_lines += 1
   current_actions = []
   if t == 'init':
-    # TODO
     pass
   else:
     # TODO
