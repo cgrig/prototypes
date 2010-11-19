@@ -1,2 +1,3 @@
 # comment a
-program X:  # comment b
+program \
+  X:  # comment b
