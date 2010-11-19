@@ -1,6 +1,6 @@
 """A parser for SAP scripts.
 """
-
+from collections import namedtuple
 import bisect
 
 class NoMatchError(Exception):
@@ -20,13 +20,17 @@ class Location:
     pe = pp(end)
     return ps + '-' + pe if ps != pe else ps
 
-def join_locations(locations):
-  pass # TODO
+def join_locations(*locations):
+  result = None
+  for l in locations:
+    if result is None:
+      result = l
+    else:
+      result.start = min(result.start, l.start)
+      result.end = max(result.end, l.end)
+  return result
 
-class DataWithLocation:
-  def __init__(self, data, location):
-    self.data = data
-    self.location = location
+DataWithLocation = namedtuple('DataWithLocation', 'data location')
 
 def parse(rules, stream):
   for to_match, value in rules:
@@ -77,6 +81,20 @@ def space_of_tab(input):
       t.data = ' '
     yield t
 
+def join_spaces(input):
+  spaces = ''
+  location = None
+  for t in input:
+    if t.data == ' ':
+      spaces += ' '
+      location = join_locations(location, t.location)
+    else:
+      if spaces != '':
+        yield DataWithLocation(spaces, location)
+        spaces = ''
+        location = None
+      yield t
+
 def glue_lines(input):
   state = 0
   for t in input:
@@ -102,7 +120,7 @@ def add_newline_at_end(input):
 def strip_trailing_space(input):
   queue = []
   for t in input:
-    if t.data == ' ':
+    if t.data == ' ': # TODO make it work for t.data = '   '
       queue.append(t)
     else:
       if t.data != '\n':
@@ -111,44 +129,50 @@ def strip_trailing_space(input):
       queue = []
       yield t
 
+# Assumes that spaces are consolidated.
 def process_indents(input):
-  pass # TODO
+  indents = [0]
+  state = 0 # 0 = beginning of line, 1 = non-space seen
+  for t in input:
+    if state == 0:
+      if t.data != '\n':
+        indent = len(t.data) if t.data[0] == ' ' else 0
+        position = (t.location.start[0], 0)
+        p = bisect.bisect_left(indents, indent)
+        for _ in range(p + 1, len(indents)):
+          yield DataWithLocation('}', Location(position))
+        if p == len(indents):
+          yield DataWithLocation('{', Location(position))
+        indents[p:] = [indent]
+        state = 1
+      yield t
+    else:
+      if t.data == '\n':
+        state = 0
+      yield t
+  position = (t.location.end[1] + 1, 0)
+  for _ in indents[1:]:
+    yield DataWithLocation('}', Location(position))
 
-class IndentProcessor:
-  def __init__(self, input):
-    self.input = input
-    self.indents = []
+def tokenizer(input):
+  return input # TODO
 
-  def __iter__(self):
-    indent = 0
-    while True:
-      c = next(self.input)
-      if c == ' ':
-        indent += 1
-      else:
-        p = bisect.bisect_left(self.indents, indent)
-        for _ in range(p, len(self.indents)):
-          yield '}'
-        if p == len(self.indents):
-          yield '{'
-        self.indents[p:] = [indent]
-        break
-    while True:
-      yield c
-      if c == '\n':
-        yield c
-        return
-      c = next(self.input)
-
-if __name__ == '__main__':
+def main():
   import sys
   cs = iter(sys.stdin.read())  # TODO: don't load in memory
   cs = add_locations(cs)
   cs = add_newline_at_end(cs)
+  cs = tokenizer(cs)  # TODO: must tokenize before even stripping comments to avoid problems with string literals
   cs = space_of_tab(cs)
   cs = strip_comments(cs)
-  cs = glue_lines(cs)  # NOTE: in C usually this is done before strip_comments
+  cs = glue_lines(cs)  # TODO: move before tokenizer?
   cs = strip_trailing_space(cs)
+  cs = join_spaces(cs)
+  cs = process_indents(cs)
   cs = map(lambda x: x.data, cs)
   for c in cs:
     sys.stdout.write(c)
+
+if __name__ == '__main__':
+  import cProfile
+  cProfile.run('main()', 'sap.parser.prof')
