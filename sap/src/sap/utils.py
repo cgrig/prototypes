@@ -13,23 +13,25 @@ class Generator:
     self.position = 0
     self.marks = []
 
-  def mark():
+  def mark(self):
     self.marks.append(self.position)
 
-  def unmark():
-    marks.pop()
-    if marks == []:
+  def unmark(self):
+    self.marks.pop()
+    if self.marks == []:
       self.buffer = []
       self.position = 0
 
-  def rewind():
-    self.position = marks.pop()
+  def rewind(self):
+    self.position = self.marks.pop()
 
-  def next(self):
-    if marks == []:
-      return self.generator.next()
+  def __next__(self):
     if self.position == len(self.buffer):
-      self.buffer.append(self.generator.next())
+      if self.marks == []:
+        self.position = 0
+        self.buffer = []
+        return next(self.generator)
+      self.buffer.append(next(self.generator))
     r = self.buffer[self.position]
     self.position += 1
     return r
@@ -38,19 +40,31 @@ if __name__ == '__main__':
   def f():
     for x in range(10):
       yield x
-  g = PeekableGenerator(f)
-  print(g.peek())
-  print(g.peek())
+  g = Generator(f())
+  g.mark()
+  assert next(g) == 0
+  assert next(g) == 1
   g.rewind()
-  print(g.peek())
-  print(g.peek())
-  print(g.peek())
-  g.eat()
-  print(g.peek())
-  print(g.peek())
+  g.mark()
+  assert next(g) == 0
+  g.mark()
+  g.mark()
+  assert next(g) == 1
   g.rewind()
-  print(g.peek())
-  while True:
-    print(g.peek())
-
-# should print: 0 1 0 1 2 3 4 3 4 5 6 7 8 9 StopIteration
+  assert next(g) == 1
+  g.rewind()
+  assert next(g) == 1
+  assert next(g) == 2
+  g.unmark()
+  g.mark()
+  assert next(g) == 3
+  assert next(g) == 4
+  g.rewind()
+  for i in range(3, 10):
+    assert next(g) == i, 'should be {0}'.format(i)
+  try:
+    next(g)
+  except StopIteration:
+    pass
+  else:
+    assert false, 'Should have thrown StopIteration'
