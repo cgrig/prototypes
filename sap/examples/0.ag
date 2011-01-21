@@ -1,6 +1,6 @@
 role Captain
   init(ball, name):
-    remember(LeftAgent(x) && Name(x) == "ge")
+    remember(LeftAgent(x) && Name(x) == 'ge')
     enact(Player(ball, self, name))
 
   rule LeftAgent(x) && Left(Ball):
@@ -14,12 +14,12 @@ role Player
 
   rule received(x, Kickball()) && Boss(x):
     remember(WantToKick())
-    x = new [Captain(self, "foo")]
-    remember(IsCaptain(x, "foo"))
+    x = new [Captain(self, 'foo')]
+    remember(IsCaptain(x, 'foo'))
 
-  rule IsCaptain(y, "foo"):
-    send(y, "bau")
-    send("123.0.0.1:45", "baubau")
+  rule IsCaptain(y, 'foo'):
+    send(y, 'bau')
+    send('123.0.0.1:45', 'baubau')
 
   rule received(x, ChangeBoss(newBoss)) && Boss(x):
     forget(Boss(x))
@@ -27,8 +27,8 @@ role Player
 
 main
   b = new [Ball()]
-  g = new [Captain(b, "rem")]
-  c = new [Player(b, g, "clau")]
-  r = new [Player(b, g, "radu")]
-  m = new [Player(b, c, "mircea")]
+  g = new [Captain(b, 'rem')]
+  c = new [Player(b, g, 'clau')]
+  r = new [Player(b, g, 'radu')]
+  m = new [Player(b, c, 'mircea')]
   send(b, Players([g, c, r, m]))

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# NOTE The parsing here is being replaced by sap.parser.
+
 import re
 import sys
 

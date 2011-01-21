@@ -2,9 +2,13 @@
 """
 from collections import namedtuple
 import bisect
+import re
 
 class NoMatchError(Exception):
   pass
+
+warnings = []
+errors = []
 
 class Location:
   """The start and end are (line, column) pairs. Inclusive.
@@ -16,8 +20,8 @@ class Location:
   def __str__(self):
     def pp(x):
       return '{0}:{1}'.format(x[0], x[1])
-    ps = pp(start)
-    pe = pp(end)
+    ps = pp(self.start)
+    pe = pp(self.end)
     return ps + '-' + pe if ps != pe else ps
 
 def join_locations(*locations):
@@ -76,8 +80,7 @@ def strip_comments(input):
 def space_of_tab(input):
   for t in input:
     if t.data == '\t':
-      sys.stderr.write('tab at {0} treated as space\n'
-          .format(t.location)) # TODO
+      warnings.append(DataWithLocation('tab treated as space', t.location))
       t.data = ' '
     yield t
 
@@ -150,10 +153,74 @@ def process_indents(input):
       if t.data == '\n':
         state = 0
       yield t
-  position = (t.location.end[1] + 1, 0)
+  position = (t.location.end[0] + 1, 0)
   for _ in indents[1:]:
     yield DataWithLocation('}', Location(position))
 
+def glue_string_literals(input):
+  s = ''
+  ls = []
+  state = 0
+  for t in input:
+    if state == 0:
+      if t.data == "'":
+        s += t.data
+        ls.append(t.location)
+        state = 1
+      else:
+        yield t
+    elif state == 1:
+      if t.data == "'":
+        s += t.data
+        ls.append(t.location)
+        r = DataWithLocation(s, join_locations(*ls))
+        yield r
+        s = ''
+        ls = []
+        state = 0
+      elif t.data == '\\':
+        state == 2
+      elif t.data == '\n':
+        warnings.append(DataWithLocation('ignored newline', t.location))
+      else:
+        s += t.data
+        ls.append(t.location)
+    elif state == 2:
+      s += t.data
+      ls.append(t.location)
+      state = 1
+  if state != 0:
+    errors.append('input ends inside string literal', join_locations(*ls))
+
+def glue_consecutive_matching(pattern, input):
+  s = ''
+  ls = []
+  for t in input:
+    if pattern.match(t.data):
+      s += t.data
+      ls.append(t.location)
+    else:
+      if s != '':
+        yield DataWithLocation(s, join_locations(*ls))
+        s = ''
+        ls = []
+      yield t
+  assert s == '', 'Leftovers: <{0}>'.format(s)
+
+def glue_identifiers(input):
+  import re
+  return glue_consecutive_matching(re.compile(r'[a-zA-Z]$'), input)
+
+def glue_integers(input):
+  import re
+  return glue_consecutive_matching(re.compile(r'[0-9]$'), input)
+
+# This will be split into several functions.
+# Glues literals: numbers, strings.
+# Glues identifiers.
+# Strips spaces that aren't at start of line: They just separate tokens.
+# Glues consecutive spaces.
+# Keeps line breaks, as line structure is dealt with later.
 def tokenizer(input):
   return input # TODO
 
@@ -162,16 +229,19 @@ def main():
   cs = iter(sys.stdin.read())  # TODO: don't load in memory
   cs = add_locations(cs)
   cs = add_newline_at_end(cs)
-  cs = tokenizer(cs)  # TODO: must tokenize before even stripping comments to avoid problems with string literals
   cs = space_of_tab(cs)
+  cs = glue_string_literals(cs)
+  cs = glue_identifiers(cs)
+  cs = glue_integers(cs)
+  cs = tokenizer(cs)  # TODO: must tokenize before even stripping comments to avoid problems with string literals
   cs = strip_comments(cs)
   cs = glue_lines(cs)  # TODO: move before tokenizer?
   cs = strip_trailing_space(cs)
   cs = join_spaces(cs)
   cs = process_indents(cs)
-  cs = map(lambda x: x.data, cs)
+  #cs = map(lambda x: x.data, cs)
   for c in cs:
-    sys.stdout.write(c)
+    sys.stdout.write('{0}: {1}\n'.format(c.location, c.data))
 
 if __name__ == '__main__':
   import cProfile
